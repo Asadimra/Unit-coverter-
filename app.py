@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st  
 
 def length_conversion(value, from_unit, to_unit):
     # Base unit: meters
@@ -170,6 +170,10 @@ def time_conversion(value, from_unit, to_unit):
 def main():
     st.set_page_config(page_title="Advanced Unit Converter", layout="wide")
     
+    # Initialize conversion history in session state if it doesn't exist
+    if 'conversion_history' not in st.session_state:
+        st.session_state.conversion_history = []
+    
     # Add custom CSS
     st.markdown("""
         <style>
@@ -186,10 +190,7 @@ def main():
     
     # Dictionary mapping conversion types to their units and conversion functions
     conversion_options = {
-        'Area': {
-            'units': ['Square Meters', 'Square Kilometers', 'Square Miles', 'Square Feet', 'Acres', 'Hectares'],
-            'function': length_conversion  # Using length conversion squared
-        },
+      
         'Data Transfer Rate': {
             'units': ['bps', 'Kbps', 'Mbps', 'Gbps', 'KB/s', 'MB/s', 'GB/s'],
             'function': data_transfer_rate_conversion
@@ -246,7 +247,7 @@ def main():
     }
     
     # Create columns for better layout
-    col1, col2 = st.columns([1, 2])
+    col1, col2= st.columns([1, 2])
     
     with col1:
         # Conversion type selection
@@ -275,10 +276,39 @@ def main():
     if st.button('Convert', key='convert_button'):
         try:
             result = convert_func(value, from_unit, to_unit)
-            st.success(f'{value:,.4f} {from_unit} = {result:,.4f} {to_unit}')
+            result_text = f'{value:,.4f} {from_unit} = {result:,.4f} {to_unit}'
+            st.success(result_text)
+            
+            # Add to history with timestamp
+            from datetime import datetime
+            history_entry = {
+                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'type': conversion_type,
+                'conversion': result_text
+            }
+            st.session_state.conversion_history.insert(0, history_entry)  # Add to start of list
         except Exception as e:
             st.error(f'Error during conversion: {str(e)}')
     
+    # Display conversion history
+    st.markdown("---")
+    st.subheader("Conversion History")
+    
+    if not st.session_state.conversion_history:
+        st.info("No conversion history yet")
+    else:
+        # Add a clear history button
+        if st.button("Clear History"):
+            st.session_state.conversion_history = []
+            st.rerun()
+        
+        # Display history in a nice format
+        for entry in st.session_state.conversion_history:
+            with st.container():
+                st.text(f"[{entry['timestamp']}] {entry['type']}")
+                st.text(f"➜ {entry['conversion']}")
+                st.markdown("---")
+
     # Add helpful information
     with st.expander("Help & Information"):
         st.markdown("""
